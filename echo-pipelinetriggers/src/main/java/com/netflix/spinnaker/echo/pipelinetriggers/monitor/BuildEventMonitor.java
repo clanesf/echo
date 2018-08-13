@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 Netflix, Inc.
+ * Copyright (c) 2017, 2018, Oracle Corporation and/or its affiliates. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,8 @@
 
 package com.netflix.spinnaker.echo.pipelinetriggers.monitor;
 
+import static com.netflix.spinnaker.echo.pipelinetriggers.artifacts.ArtifactMatcher.anyArtifactsMatchExpected;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.echo.model.Event;
@@ -25,6 +28,12 @@ import com.netflix.spinnaker.echo.model.trigger.BuildEvent;
 import com.netflix.spinnaker.echo.model.trigger.TriggerEvent;
 import com.netflix.spinnaker.echo.pipelinetriggers.PipelineCache;
 import com.netflix.spinnaker.kork.artifacts.model.Artifact;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import lombok.NonNull;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,22 +41,13 @@ import org.springframework.stereotype.Component;
 import rx.Observable;
 import rx.functions.Action1;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import static com.netflix.spinnaker.echo.pipelinetriggers.artifacts.ArtifactMatcher.anyArtifactsMatchExpected;
-
 /**
  * Triggers pipelines on _Orca_ when a trigger-enabled build completes successfully.
  */
 @Component
 public class BuildEventMonitor extends TriggerMonitor {
 
-  public static final String[] BUILD_TRIGGER_TYPES = {"jenkins", "travis"};
+  public static final String[] BUILD_TRIGGER_TYPES = {"jenkins", "travis", "wercker"};
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -85,7 +85,7 @@ public class BuildEventMonitor extends TriggerMonitor {
   @Override
   protected Function<Trigger, Pipeline> buildTrigger(Pipeline pipeline, TriggerEvent event) {
     BuildEvent buildEvent = (BuildEvent) event;
-    return trigger -> pipeline.withTrigger(trigger.atBuildNumber(buildEvent.getBuildNumber()))
+    return trigger -> pipeline.withTrigger(trigger.atBuildNumber(buildEvent.getBuildNumber()).withEventId(event.getEventId()))
       .withReceivedArtifacts(getArtifacts(buildEvent));
   }
 
